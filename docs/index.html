@@ -240,6 +240,7 @@
     const chaveEstado = 'liga-desliga-estado-github';
     const chaveReinicioAte = 'liga-desliga-reinicio-ate-github';
     const chaveEstadoPosReinicio = 'liga-desliga-estado-pos-reinicio-github';
+    const urlPadraoNotebook = 'https://xxxxx.ngrok-free.app';
 
     function normalizarBaseUrl(url) {
       return url.trim().replace(/\/+$/, '');
@@ -252,8 +253,8 @@
     function carregarUrlSalva() {
       const campo = obterCampoUrl();
       const salvo = localStorage.getItem(chaveServidor) || '';
-      campo.value = salvo;
-      return salvo;
+      campo.value = salvo || urlPadraoNotebook;
+      return campo.value;
     }
 
     function salvarUrl() {
@@ -279,9 +280,13 @@
 
       const campo = obterCampoUrl();
       const digitado = normalizarBaseUrl(campo.value);
-      if (digitado) {
+      if (digitado && digitado !== urlPadraoNotebook) {
         localStorage.setItem(chaveServidor, digitado);
         return digitado;
+      }
+
+      if (campo.value === urlPadraoNotebook) {
+        return '';
       }
 
       return '';

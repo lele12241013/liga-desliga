@@ -97,6 +97,7 @@ $ips = Get-NetIPAddress -AddressFamily IPv4 | Where-Object {
 foreach ($ip in $ips) {
   Write-Host "  http://$($ip.IPAddress):3000" -ForegroundColor White
 }
+Write-Host '  IP fixo do notebook: http://192.168.1.29:3000' -ForegroundColor Green
 
 Write-Host ''
 Write-Host '--- MAC Address do notebook (para config.js) ---' -ForegroundColor Cyan

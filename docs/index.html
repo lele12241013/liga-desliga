@@ -41,6 +41,67 @@
       line-height: 1.7;
     }
 
+    .configuracao {
+      width: min(560px, 100%);
+      padding: 16px;
+      border: 1px solid rgba(106, 131, 162, 0.2);
+      border-radius: 18px;
+      background: rgba(8, 14, 22, 0.58);
+      box-shadow: 0 16px 45px rgba(0, 0, 0, 0.24);
+      display: grid;
+      gap: 12px;
+    }
+
+    .configuracao label {
+      color: #d5e0eb;
+      font-size: 0.9rem;
+      letter-spacing: 0.03em;
+    }
+
+    .configuracao .linha {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .configuracao input {
+      flex: 1 1 320px;
+      min-width: 0;
+      border: 1px solid rgba(106, 131, 162, 0.28);
+      border-radius: 12px;
+      background: #0d1824;
+      color: #eff6ff;
+      padding: 14px 16px;
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    .configuracao input:focus {
+      border-color: #6eff3e;
+      box-shadow: 0 0 0 3px rgba(110, 255, 62, 0.12);
+    }
+
+    .acao-secundaria {
+      border: 1px solid rgba(106, 131, 162, 0.35);
+      background: transparent;
+      color: #d5e0eb;
+      border-radius: 12px;
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .acao-secundaria:hover {
+      border-color: #6eff3e;
+      color: #f3f7fb;
+      background: rgba(110, 255, 62, 0.08);
+    }
+
+    .configuracao small {
+      color: #96a8b9;
+      line-height: 1.5;
+    }
+
     .acoes {
       display: flex;
       flex-direction: column;
@@ -157,6 +218,15 @@
   <h1>Controle do Notebook</h1>
   <p>Site para GitHub Pages com um botao para cada funcao: ligar, desligar e reiniciar.</p>
 
+  <section class="configuracao">
+    <label for="urlNotebook">URL do notebook</label>
+    <div class="linha">
+      <input id="urlNotebook" type="url" placeholder="https://xxxxx.ngrok-free.app" autocomplete="off" spellcheck="false" />
+      <button class="acao-secundaria" type="button" onclick="salvarUrl()">Salvar</button>
+    </div>
+    <small>Salve uma vez. Depois disso os botoes usam essa URL sem abrir janela de pergunta.</small>
+  </section>
+
   <section class="acoes">
     <button class="botao" data-acao="ligar" style="--clr:#6eff3e" onclick="executar('ligar')"><span>Ligar</span><i></i></button>
     <button class="botao" data-acao="desligar" style="--clr:#ff1867" onclick="executar('desligar')"><span>Desligar</span><i></i></button>
@@ -175,17 +245,46 @@
       return url.trim().replace(/\/+$/, '');
     }
 
+    function obterCampoUrl() {
+      return document.getElementById('urlNotebook');
+    }
+
+    function carregarUrlSalva() {
+      const campo = obterCampoUrl();
+      const salvo = localStorage.getItem(chaveServidor) || '';
+      campo.value = salvo;
+      return salvo;
+    }
+
+    function salvarUrl() {
+      const campo = obterCampoUrl();
+      const normalizada = normalizarBaseUrl(campo.value);
+      if (!normalizada) {
+        localStorage.removeItem(chaveServidor);
+        mostrarToast('Informe a URL antes de salvar.');
+        return '';
+      }
+
+      localStorage.setItem(chaveServidor, normalizada);
+      campo.value = normalizada;
+      mostrarToast('URL salva no navegador.');
+      return normalizada;
+    }
+
     function obterBaseUrl() {
       const salvo = localStorage.getItem(chaveServidor);
       if (salvo) {
         return normalizarBaseUrl(salvo);
       }
 
-      const informado = window.prompt('Cole a URL publica do notebook. Ex.: https://xxxxx.ngrok-free.app');
-      if (!informado) return '';
-      const normalizado = normalizarBaseUrl(informado);
-      localStorage.setItem(chaveServidor, normalizado);
-      return normalizado;
+      const campo = obterCampoUrl();
+      const digitado = normalizarBaseUrl(campo.value);
+      if (digitado) {
+        localStorage.setItem(chaveServidor, digitado);
+        return digitado;
+      }
+
+      return '';
     }
 
     function lerEstado() {
@@ -241,7 +340,7 @@
     async function executar(tipo) {
       const baseUrl = obterBaseUrl();
       if (!baseUrl) {
-        mostrarToast('URL do notebook nao informada.');
+        mostrarToast('Salve a URL do notebook antes de usar os botoes.');
         return;
       }
 
@@ -303,6 +402,7 @@
       }, 3200);
     }
 
+    carregarUrlSalva();
     aplicarEstadoVisual();
     agendarRetornoDoReinicio();
   </script>

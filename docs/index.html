@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Controle do Notebook</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: #151f28;
+      flex-direction: column;
+      gap: 28px;
+      padding: 24px;
+    }
+
+    h1 {
+      color: #f3f7fb;
+      font-size: 2rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    p {
+      max-width: 520px;
+      color: #96a8b9;
+      text-align: center;
+      font-size: 0.95rem;
+      line-height: 1.7;
+    }
+
+    .acoes {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      width: 100%;
+    }
+
+    .botao {
+      position: relative;
+      background: #fff;
+      color: #fff;
+      display: inline-block;
+      width: min(220px, 100%);
+      text-align: center;
+      text-decoration: none;
+      text-transform: uppercase;
+      font-size: 1.5rem;
+      letter-spacing: 0.1em;
+      font-weight: 400;
+      padding: 10px 30px;
+      transition: 0.5s;
+      border: 0;
+      cursor: pointer;
+    }
+
+    .botao:hover {
+      background: var(--clr);
+      color: var(--clr);
+      letter-spacing: 0.25em;
+      box-shadow: 0 0 35px var(--clr);
+    }
+
+    .botao.ativo {
+      background: var(--clr);
+      color: var(--clr);
+      letter-spacing: 0.2em;
+      box-shadow: 0 0 35px var(--clr);
+    }
+
+    .botao::before {
+      content: '';
+      position: absolute;
+      inset: 2px;
+      background: #151f28;
+    }
+
+    .botao span {
+      position: relative;
+      z-index: 1;
+    }
+
+    .botao i {
+      position: absolute;
+      inset: 0;
+      display: block;
+    }
+
+    .botao i::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 80%;
+      width: 10px;
+      height: 4px;
+      background: #151f28;
+      transform: translateX(-50%) skewX(325deg);
+      transition: 0.5s;
+    }
+
+    .botao:hover i::before {
+      width: 20px;
+      left: 20%;
+    }
+
+    .botao i::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 20%;
+      width: 10px;
+      height: 4px;
+      background: #151f28;
+      transform: translateX(-50%) skewX(325deg);
+      transition: 0.5s;
+    }
+
+    .botao:hover i::after {
+      width: 20px;
+      left: 80%;
+    }
+
+    #toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%) translateY(20px);
+      padding: 12px 18px;
+      border-radius: 12px;
+      border: 1px solid #304863;
+      background: #0f1a29;
+      color: #eff6ff;
+      opacity: 0;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <h1>Controle do Notebook</h1>
+  <p>Site para GitHub Pages com um botao para cada funcao: ligar, desligar e reiniciar.</p>
+
+  <section class="acoes">
+    <button class="botao" data-acao="ligar" style="--clr:#6eff3e" onclick="executar('ligar')"><span>Ligar</span><i></i></button>
+    <button class="botao" data-acao="desligar" style="--clr:#ff1867" onclick="executar('desligar')"><span>Desligar</span><i></i></button>
+    <button class="botao" data-acao="reiniciar" style="--clr:#1e9bff" onclick="executar('reiniciar')"><span>Reiniciar</span><i></i></button>
+  </section>
+
+  <div id="toast"></div>
+
+  <script>
+    const chaveServidor = 'liga-desliga-servidor-url';
+    const chaveEstado = 'liga-desliga-estado-github';
+    const chaveReinicioAte = 'liga-desliga-reinicio-ate-github';
+    const chaveEstadoPosReinicio = 'liga-desliga-estado-pos-reinicio-github';
+
+    function normalizarBaseUrl(url) {
+      return url.trim().replace(/\/+$/, '');
+    }
+
+    function obterBaseUrl() {
+      const salvo = localStorage.getItem(chaveServidor);
+      if (salvo) {
+        return normalizarBaseUrl(salvo);
+      }
+
+      const informado = window.prompt('Cole a URL publica do notebook. Ex.: https://xxxxx.ngrok-free.app');
+      if (!informado) return '';
+      const normalizado = normalizarBaseUrl(informado);
+      localStorage.setItem(chaveServidor, normalizado);
+      return normalizado;
+    }
+
+    function lerEstado() {
+      return localStorage.getItem(chaveEstado) || '';
+    }
+
+    function salvarEstado(estado) {
+      if (estado) {
+        localStorage.setItem(chaveEstado, estado);
+      } else {
+        localStorage.removeItem(chaveEstado);
+      }
+      aplicarEstadoVisual();
+    }
+
+    function limparReinicioPendente() {
+      localStorage.removeItem(chaveReinicioAte);
+      localStorage.removeItem(chaveEstadoPosReinicio);
+      clearTimeout(window._retornoReinicioTimer);
+    }
+
+    function aplicarEstadoVisual() {
+      const estado = lerEstado();
+      document.querySelectorAll('[data-acao]').forEach(botao => {
+        botao.classList.toggle('ativo', botao.dataset.acao === estado);
+      });
+    }
+
+    function agendarRetornoDoReinicio() {
+      const reinicioAte = Number(localStorage.getItem(chaveReinicioAte) || 0);
+      const estadoPosReinicio = localStorage.getItem(chaveEstadoPosReinicio);
+
+      if (!reinicioAte || !estadoPosReinicio) {
+        return;
+      }
+
+      const restante = reinicioAte - Date.now();
+      clearTimeout(window._retornoReinicioTimer);
+
+      if (restante <= 0) {
+        limparReinicioPendente();
+        salvarEstado(estadoPosReinicio);
+        return;
+      }
+
+      window._retornoReinicioTimer = setTimeout(() => {
+        limparReinicioPendente();
+        salvarEstado(estadoPosReinicio);
+        mostrarToast('Estado voltou para ligar.');
+      }, restante);
+    }
+
+    async function executar(tipo) {
+      const baseUrl = obterBaseUrl();
+      if (!baseUrl) {
+        mostrarToast('URL do notebook nao informada.');
+        return;
+      }
+
+      if (tipo === 'desligar' && !window.confirm('Forcar o desligamento agora?')) {
+        return;
+      }
+
+      if (tipo === 'reiniciar' && !window.confirm('Reiniciar o notebook agora?')) {
+        return;
+      }
+
+      try {
+        const resposta = await fetch(`${baseUrl}/api/${tipo}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({}),
+        });
+
+        const dados = await resposta.json();
+        if (resposta.ok) {
+          if (tipo === 'ligar') {
+            limparReinicioPendente();
+            salvarEstado('ligar');
+          }
+
+          if (tipo === 'desligar') {
+            limparReinicioPendente();
+            salvarEstado('desligar');
+          }
+
+          if (tipo === 'reiniciar') {
+            const estadoAnterior = lerEstado();
+            salvarEstado('reiniciar');
+
+            if (estadoAnterior === 'ligar') {
+              localStorage.setItem(chaveReinicioAte, String(Date.now() + 2 * 60 * 1000));
+              localStorage.setItem(chaveEstadoPosReinicio, 'ligar');
+              agendarRetornoDoReinicio();
+            } else {
+              limparReinicioPendente();
+            }
+          }
+        }
+        mostrarToast(dados.mensagem || 'Comando enviado.');
+      } catch {
+        localStorage.removeItem(chaveServidor);
+        mostrarToast('Nao foi possivel conectar. Na proxima tentativa, informe a URL atual do notebook.');
+      }
+    }
+
+    function mostrarToast(texto) {
+      const toast = document.getElementById('toast');
+      toast.textContent = texto;
+      toast.className = 'show';
+      clearTimeout(toast._timer);
+      toast._timer = setTimeout(() => {
+        toast.className = '';
+      }, 3200);
+    }
+
+    aplicarEstadoVisual();
+    agendarRetornoDoReinicio();
+  </script>
+</body>
+</html>

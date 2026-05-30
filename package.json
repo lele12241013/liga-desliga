@@ -1,0 +1,14 @@
+{
+  "name": "liga-desliga-notebook",
+  "version": "2.0.0",
+  "description": "Controle remoto do notebook pela internet (ligar/desligar)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "wake_on_lan": "^1.0.0",
+    "@ngrok/ngrok": "^1.4.0"
+  }
+}

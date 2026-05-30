@@ -216,16 +216,7 @@
 </head>
 <body>
   <h1>Controle do Notebook</h1>
-  <p>Site para GitHub Pages com um botao para cada funcao: ligar, desligar e reiniciar.</p>
-
-  <section class="configuracao">
-    <label for="urlNotebook">URL do notebook</label>
-    <div class="linha">
-      <input id="urlNotebook" type="url" placeholder="https://xxxxx.ngrok-free.app" autocomplete="off" spellcheck="false" />
-      <button class="acao-secundaria" type="button" onclick="salvarUrl()">Salvar</button>
-    </div>
-    <small>Salve uma vez. Depois disso os botoes usam essa URL sem abrir janela de pergunta.</small>
-  </section>
+  <p>Abra este painel no navegador do notebook ou em outro aparelho na mesma rede: http://IP-DO-NOTEBOOK:3000</p>
 
   <section class="acoes">
     <button class="botao" data-acao="ligar" style="--clr:#6eff3e" onclick="executar('ligar')"><span>Ligar</span><i></i></button>
@@ -236,61 +227,9 @@
   <div id="toast"></div>
 
   <script>
-    const chaveServidor = 'liga-desliga-servidor-url';
     const chaveEstado = 'liga-desliga-estado-github';
     const chaveReinicioAte = 'liga-desliga-reinicio-ate-github';
     const chaveEstadoPosReinicio = 'liga-desliga-estado-pos-reinicio-github';
-    const urlPadraoNotebook = 'https://xxxxx.ngrok-free.app';
-
-    function normalizarBaseUrl(url) {
-      return url.trim().replace(/\/+$/, '');
-    }
-
-    function obterCampoUrl() {
-      return document.getElementById('urlNotebook');
-    }
-
-    function carregarUrlSalva() {
-      const campo = obterCampoUrl();
-      const salvo = localStorage.getItem(chaveServidor) || '';
-      campo.value = salvo || urlPadraoNotebook;
-      return campo.value;
-    }
-
-    function salvarUrl() {
-      const campo = obterCampoUrl();
-      const normalizada = normalizarBaseUrl(campo.value);
-      if (!normalizada) {
-        localStorage.removeItem(chaveServidor);
-        mostrarToast('Informe a URL antes de salvar.');
-        return '';
-      }
-
-      localStorage.setItem(chaveServidor, normalizada);
-      campo.value = normalizada;
-      mostrarToast('URL salva no navegador.');
-      return normalizada;
-    }
-
-    function obterBaseUrl() {
-      const salvo = localStorage.getItem(chaveServidor);
-      if (salvo) {
-        return normalizarBaseUrl(salvo);
-      }
-
-      const campo = obterCampoUrl();
-      const digitado = normalizarBaseUrl(campo.value);
-      if (digitado && digitado !== urlPadraoNotebook) {
-        localStorage.setItem(chaveServidor, digitado);
-        return digitado;
-      }
-
-      if (campo.value === urlPadraoNotebook) {
-        return '';
-      }
-
-      return '';
-    }
 
     function lerEstado() {
       return localStorage.getItem(chaveEstado) || '';
@@ -343,12 +282,6 @@
     }
 
     async function executar(tipo) {
-      const baseUrl = obterBaseUrl();
-      if (!baseUrl) {
-        mostrarToast('Salve a URL do notebook antes de usar os botoes.');
-        return;
-      }
-
       if (tipo === 'desligar' && !window.confirm('Forcar o desligamento agora?')) {
         return;
       }
@@ -358,11 +291,10 @@
       }
 
       try {
-        const resposta = await fetch(`${baseUrl}/api/${tipo}`, {
+        const resposta = await fetch(`/api/${tipo}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'ngrok-skip-browser-warning': '1',
           },
           body: JSON.stringify({}),
         });
@@ -408,7 +340,6 @@
       }, 3200);
     }
 
-    carregarUrlSalva();
     aplicarEstadoVisual();
     agendarRetornoDoReinicio();
   </script>

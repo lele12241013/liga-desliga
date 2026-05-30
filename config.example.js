@@ -9,8 +9,6 @@ module.exports = {
   broadcast: '192.168.1.255',
   ip_publico: '',
 
-  ngrok_token: '',
-
   telegram_token: '',
   telegram_chat_id: '',
 

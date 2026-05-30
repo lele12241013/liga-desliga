@@ -1,42 +1,29 @@
 /**
- * Liga/Desliga Notebook v2 — Acesso de QUALQUER rede via túnel ngrok
+ * Liga/Desliga Notebook v2 — acesso local ou pela rede Wi-Fi/LAN
  *
  * COMO FUNCIONA:
- *  - O servidor roda no notebook e abre um túnel HTTPS automático (ngrok).
- *  - Um URL público é gerado: https://xxxx.ngrok-free.app
- *  - Você acessa esse URL de qualquer celular, de qualquer rede do mundo.
- *  - O URL é enviado para o seu Telegram (se configurado) toda vez que o
- *    notebook ligar, para você sempre ter o endereço atualizado.
- *
- * WoL (ligar de fora da rede):
- *  - Configure no roteador: redirecionamento UDP porta 9 → IP local do notebook.
- *  - Informe ip_publico em config.js.
- *  - O botão "Ligar" envia o pacote para o IP público + broadcast local.
- *  - Obs: quando o notebook está desligado, acesse o URL salvo no Telegram
- *    de OUTRO dispositivo ligado, ou use um app WoL no celular.
+ *  - O servidor roda no notebook e serve o painel em http://IP_DO_NOTEBOOK:3000
+ *  - Outro aparelho na mesma rede acessa esse endereço e envia comandos.
+ *  - O botão "Ligar" envia o pacote WoL para a rede local e, se configurado,
+ *    também para o IP público do roteador.
  *
  * PRIMEIRA VEZ:
- *  1. Execute: configurar-windows.ps1  (como Administrador)
- *  2. Edite config.js com MAC, token ngrok e Telegram.
+ *  1. Execute: instalar-e-iniciar.ps1  (como Administrador)
+ *  2. Edite config.js com MAC e IP público, se quiser WoL externo.
  */
 
 const express = require('express');
 const { exec }  = require('child_process');
 const path      = require('path');
-const https     = require('https');
-const http      = require('http');
 const wol       = require('wake_on_lan');
 const config    = require('./config');
 
 const app  = express();
 const PORT = config.porta || 3000;
 
-// URL pública do túnel (preenchida ao conectar)
-let tunnelUrl = null;
-
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, ngrok-skip-browser-warning');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   if (req.method === 'OPTIONS') {
     return res.sendStatus(204);
@@ -50,7 +37,7 @@ app.use(express.static(path.join(__dirname, 'docs')));
 // ─── Rotas ───────────────────────────────────────────────────────────────────
 
 app.get('/api/status', (_req, res) => {
-  res.json({ ok: true, online: true, tunnelUrl });
+  res.json({ ok: true, online: true });
 });
 
 app.post('/api/desligar', (_req, res) => {
@@ -114,63 +101,4 @@ app.listen(PORT, '0.0.0.0', async () => {
   console.log('╠══════════════════════════════════════════════╣');
   console.log(`║  Local:  http://localhost:${PORT}                  ║`);
   console.log('╚══════════════════════════════════════════════╝\n');
-
-  if (config.ngrok_token) {
-    try {
-      const ngrok = require('@ngrok/ngrok');
-      const listener = await ngrok.forward({ addr: PORT, authtoken: config.ngrok_token });
-      tunnelUrl = listener.url();
-      console.log(`✅ Túnel ativo: ${tunnelUrl}\n`);
-
-      if (config.telegram_token && config.telegram_chat_id) {
-        notificarTelegram(
-          `🟢 *Notebook Online*\n` +
-          `Painel: ${tunnelUrl}\n` +
-          `Guarde este link — muda a cada reinício.`
-        );
-      }
-      if (config.webhook_url) notificarWebhook(tunnelUrl);
-    } catch (e) {
-      console.warn('⚠️  Falha no túnel ngrok:', e.message);
-      console.warn('   Verifique ngrok_token em config.js\n');
-    }
-  } else {
-    console.log('ℹ️  ngrok_token não configurado — acesso apenas na rede local.');
-    console.log('   Edite config.js e adicione seu token: https://dashboard.ngrok.com\n');
-  }
 });
-
-// ─── Notificações ─────────────────────────────────────────────────────────────
-
-function notificarTelegram(msg) {
-  const body = JSON.stringify({ chat_id: config.telegram_chat_id, text: msg, parse_mode: 'Markdown' });
-  const req = https.request({
-    hostname: 'api.telegram.org',
-    path: `/bot${config.telegram_token}/sendMessage`,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
-  }, () => {});
-  req.on('error', e => console.warn('Telegram:', e.message));
-  req.write(body);
-  req.end();
-}
-
-function notificarWebhook(url) {
-  const body = JSON.stringify({ online: true, url: tunnelUrl });
-  const lib  = url.startsWith('https') ? https : http;
-  try {
-    const parsed = new URL(url);
-    const req = lib.request({
-      hostname: parsed.hostname,
-      port: parsed.port || (url.startsWith('https') ? 443 : 80),
-      path: parsed.pathname + parsed.search,
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
-    }, () => {});
-    req.on('error', e => console.warn('Webhook:', e.message));
-    req.write(body);
-    req.end();
-  } catch (e) {
-    console.warn('Webhook URL inválida:', e.message);
-  }
-}

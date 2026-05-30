@@ -106,11 +106,10 @@ Get-NetAdapter | Where-Object { $_.Status -eq 'Up' } | ForEach-Object {
 
 Write-Host ''
 Write-Host '--- Proximos passos ---' -ForegroundColor Cyan
-Write-Host '  1. Edite config.js: mac_address e ip_publico' -ForegroundColor Yellow
-Write-Host '  2. Token ngrok ja configurado em config.js' -ForegroundColor Green
-Write-Host '  3. Publique a pasta docs no GitHub Pages para o painel externo' -ForegroundColor Yellow
-Write-Host '  4. (Opcional) Configure Telegram para receber o URL ao ligar' -ForegroundColor Yellow
-Write-Host '  5. No roteador, redirecione UDP porta 9 ao IP do notebook (WoL externo)' -ForegroundColor Yellow
+Write-Host '  1. Abra o painel no notebook: http://localhost:3000' -ForegroundColor Yellow
+Write-Host '  2. Em outro aparelho na mesma rede, use o IP mostrado acima' -ForegroundColor Yellow
+Write-Host '  3. Edite config.js: mac_address e ip_publico, se quiser WoL externo' -ForegroundColor Yellow
+Write-Host '  4. No roteador, redirecione UDP porta 9 ao IP do notebook (WoL externo)' -ForegroundColor Yellow
 Write-Host ''
 
 # --- 6. Iniciar servidor ------------------------------------------------------

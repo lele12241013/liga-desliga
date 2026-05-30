@@ -216,7 +216,7 @@
 </head>
 <body>
   <h1>Controle do Notebook</h1>
-  <p>Abra este painel em qualquer aparelho da rede em: http://192.168.1.29:3000</p>
+  <p>Abra este painel no notebook ou pelo link externo do túnel quando ele estiver ativo.</p>
 
   <section class="acoes">
     <button class="botao" data-acao="ligar" style="--clr:#6eff3e" onclick="executar('ligar')"><span>Ligar</span><i></i></button>
@@ -230,7 +230,6 @@
     const chaveEstado = 'liga-desliga-estado-github';
     const chaveReinicioAte = 'liga-desliga-reinicio-ate-github';
     const chaveEstadoPosReinicio = 'liga-desliga-estado-pos-reinicio-github';
-    const baseUrl = 'http://192.168.1.29:3000';
 
     function lerEstado() {
       return localStorage.getItem(chaveEstado) || '';
@@ -292,7 +291,7 @@
       }
 
       try {
-        const resposta = await fetch(`${baseUrl}/api/${tipo}`, {
+        const resposta = await fetch(`/api/${tipo}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

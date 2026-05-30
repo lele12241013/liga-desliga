@@ -1,19 +1,18 @@
 /**
- * Liga/Desliga Notebook v2 — acesso local ou pela rede Wi-Fi/LAN
+ * Liga/Desliga Notebook v2 — app Windows leve com acesso externo via Cloudflare Tunnel
  *
  * COMO FUNCIONA:
- *  - O servidor roda no notebook e serve o painel em http://IP_DO_NOTEBOOK:3000
- *  - Outro aparelho na mesma rede acessa esse endereço e envia comandos.
- *  - O botão "Ligar" envia o pacote WoL para a rede local e, se configurado,
- *    também para o IP público do roteador.
+ *  - O servidor roda no notebook e serve o painel localmente em http://localhost:3000.
+ *  - O cloudflared cria um link público sem depender de roteador ou port forwarding.
+ *  - O botão "Ligar" continua usando Wake-on-LAN pela rede local.
  *
  * PRIMEIRA VEZ:
  *  1. Execute: instalar-e-iniciar.ps1  (como Administrador)
- *  2. Edite config.js com MAC e IP público, se quiser WoL externo.
+ *  2. Se quiser WoL fora da rede, mantenha o IP público configurado em config.js.
  */
 
 const express = require('express');
-const { exec }  = require('child_process');
+const { exec, spawn }  = require('child_process');
 const path      = require('path');
 const wol       = require('wake_on_lan');
 const config    = require('./config');
@@ -68,7 +67,7 @@ app.post('/api/suspender', (_req, res) => {
   });
 });
 
-// Wake-on-LAN — envia para broadcast local e para IP público (via roteador)
+// Wake-on-LAN — envia para broadcast local
 app.post('/api/ligar', (req, res) => {
   const mac = config.mac_address;
   if (!mac || mac.includes('X')) {
@@ -101,4 +100,54 @@ app.listen(PORT, '0.0.0.0', async () => {
   console.log('╠══════════════════════════════════════════════╣');
   console.log(`║  Local:  http://localhost:${PORT}                  ║`);
   console.log('╚══════════════════════════════════════════════╝\n');
+
+  iniciarTunnelCloudflare();
 });
+
+function iniciarTunnelCloudflare() {
+  const cloudflared = process.env.CLOUDFLARED_PATH || 'cloudflared';
+  const args = ['tunnel', '--url', `http://localhost:${PORT}`, '--no-autoupdate'];
+
+  try {
+    const processo = spawn(cloudflared, args, {
+      windowsHide: true,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    let urlPublicado = false;
+
+    const registrarLinha = linha => {
+      const texto = String(linha || '').trim();
+      if (!texto) return;
+
+      console.log(`[cloudflared] ${texto}`);
+
+      const match = texto.match(/https:\/\/[-a-z0-9]+\.trycloudflare\.com/i);
+      if (match && !urlPublicado) {
+        urlPublicado = true;
+        console.log(`✅ Link externo: ${match[0]}`);
+      }
+    };
+
+    processo.stdout.on('data', data => {
+      String(data).split(/\r?\n/).forEach(registrarLinha);
+    });
+
+    processo.stderr.on('data', data => {
+      String(data).split(/\r?\n/).forEach(registrarLinha);
+    });
+
+    processo.on('error', err => {
+      console.warn('⚠️  cloudflared nao encontrado ou nao iniciou:', err.message);
+      console.warn('   Instale o cloudflared para acesso externo.');
+    });
+
+    processo.on('exit', code => {
+      if (code !== 0) {
+        console.warn(`⚠️  cloudflared encerrou com codigo ${code}.`);
+      }
+    });
+  } catch (err) {
+    console.warn('⚠️  Nao foi possivel iniciar cloudflared:', err.message);
+  }
+}

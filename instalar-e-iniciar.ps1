@@ -43,7 +43,30 @@ Set-Location $dir
 & npm install
 Write-Host 'OK!' -ForegroundColor Green
 
-# --- 3. Firewall --------------------------------------------------------------
+# --- 3. Cloudflare Tunnel ----------------------------------------------------
+Write-Host ''
+Write-Host 'Verificando cloudflared para acesso externo...' -ForegroundColor Yellow
+$cloudflaredOk = $false
+try {
+  $cloudflared = & cloudflared version 2>$null
+  if ($cloudflared) {
+    $cloudflaredOk = $true
+    Write-Host 'cloudflared ja esta instalado.' -ForegroundColor Green
+  }
+} catch {}
+
+if (-not $cloudflaredOk) {
+  Write-Host 'Instalando cloudflared via winget...' -ForegroundColor Yellow
+  try {
+    winget install Cloudflare.cloudflared --accept-source-agreements --accept-package-agreements
+    Write-Host 'cloudflared instalado!' -ForegroundColor Green
+  } catch {
+    Write-Host 'Aviso: nao foi possivel instalar cloudflared automaticamente.' -ForegroundColor Yellow
+    Write-Host 'Instale manualmente em: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/' -ForegroundColor Yellow
+  }
+}
+
+# --- 4. Firewall --------------------------------------------------------------
 Write-Host ''
 Write-Host 'Adicionando regra no Firewall do Windows (porta 3000)...' -ForegroundColor Yellow
 try {
@@ -63,7 +86,7 @@ try {
   Write-Host 'Crie manualmente: Firewall > Regra de entrada > TCP 3000' -ForegroundColor Yellow
 }
 
-# --- 4. Autostart no Windows (Task Scheduler) ---------------------------------
+# --- 5. Autostart no Windows (Task Scheduler) ---------------------------------
 if (-not $SemAutostart) {
   Write-Host ''
   Write-Host 'Registrando inicio automatico com o Windows...' -ForegroundColor Yellow
@@ -88,7 +111,7 @@ if (-not $SemAutostart) {
   Write-Host 'Para remover: Agendador de Tarefas > LigaDesligaNotebook > Excluir' -ForegroundColor Gray
 }
 
-# --- 5. Informacoes da rede ---------------------------------------------------
+# --- 6. Informacoes da rede ---------------------------------------------------
 Write-Host ''
 Write-Host '--- IPs disponiveis na rede ---' -ForegroundColor Cyan
 $ips = Get-NetIPAddress -AddressFamily IPv4 | Where-Object {
@@ -108,9 +131,8 @@ Get-NetAdapter | Where-Object { $_.Status -eq 'Up' } | ForEach-Object {
 Write-Host ''
 Write-Host '--- Proximos passos ---' -ForegroundColor Cyan
 Write-Host '  1. Abra o painel no notebook: http://localhost:3000' -ForegroundColor Yellow
-Write-Host '  2. Em outro aparelho na mesma rede, use o IP mostrado acima' -ForegroundColor Yellow
-Write-Host '  3. Edite config.js: mac_address e ip_publico, se quiser WoL externo' -ForegroundColor Yellow
-Write-Host '  4. No roteador, redirecione UDP porta 9 ao IP do notebook (WoL externo)' -ForegroundColor Yellow
+Write-Host '  2. Para acesso externo, use o link do cloudflared exibido no terminal' -ForegroundColor Yellow
+Write-Host '  3. Edite config.js: mac_address apenas se o WoL precisar de ajuste' -ForegroundColor Yellow
 Write-Host ''
 
 # --- 6. Iniciar servidor ------------------------------------------------------

@@ -9,6 +9,7 @@ module.exports = {
   broadcast: '192.168.1.255',
   ip_publico: '',
 
+  // O acesso externo pode ser feito com cloudflared/Cloudflare Tunnel.
   telegram_token: '',
   telegram_chat_id: '',
 

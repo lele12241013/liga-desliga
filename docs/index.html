@@ -289,8 +289,7 @@
         }
         mostrarToast(dados.mensagem || 'Comando enviado.');
       } catch {
-        localStorage.removeItem(chaveServidor);
-        mostrarToast('Nao foi possivel conectar. Na proxima tentativa, informe a URL atual do notebook.');
+        mostrarToast('Nao foi possivel conectar. A URL salva foi mantida para a proxima tentativa.');
       }
     }
 
